@@ -1,0 +1,26 @@
+@@battery
+Current Battery Service state:
+  AC powered: false
+  USB powered: true
+  Wireless powered: false
+  Max charging current: 500000
+  status: 2
+  health: 2
+  present: true
+  level: 89
+  scale: 100
+  voltage: 4210
+  temperature: 340
+  technology: Li-ion
+@@remote
+  Paired device: c93fff8c9460a480, Type:  Left, Model: JEDI, Firmware: 1.9.0, ImuModel: ICM42686, Battery:  60%, Status: Disabled, ExternalStatus: DISABLED, TrackingStatus: POSITION, BrightnessLevel: GOOD
+  Paired device: d17aa02c1f0e7b31, Type: Right, Model: JEDI, Firmware: 1.9.0, ImuModel: ICM42686, Battery: -1%, Status: Searching, ExternalStatus: DISABLED, TrackingStatus: NONE, BrightnessLevel: GOOD
+@@power
+  State: STANDBY
+@@prop
+Quest 3S
+340YC10G9L0123
+UP1A.231005.007.A1
+78.0
+@@ip
+192.168.1.0/24 dev wlan0 proto kernel scope link src 192.168.1.42

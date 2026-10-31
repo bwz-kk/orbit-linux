@@ -1,0 +1,21 @@
+@@battery
+Current Battery Service state:
+  AC powered: false
+  USB powered: false
+  Wireless powered: false
+  status: 3
+  health: 2
+  present: true
+  level: 41
+  scale: 100
+  temperature: 312
+@@rstest
+{"batteryLevel":92,"firmwareVersion":"1.9.2","model":"JEDI","serial":"1WMHCR30LQ1205","status":"CONNECTED_ACTIVE","trackingStatus":"POSITION","type":"LeftHand"}
+{"batteryLevel":40,"firmwareVersion":"1.9.2","model":"JEDI","serial":"1WMHCR30LQ1206","status":"DISABLED","trackingStatus":"NONE","type":"RightHand"}
+@@power
+@@prop
+Quest 3S
+340YC10G9L0123
+UP1A.231005.007.A1
+
+@@ip

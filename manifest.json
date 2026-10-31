@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "bwzkk.orbit",
+  "name": "Orbit",
+  "version": "0.1.0",
+  "author": "bwzkk",
+  "license": "MIT",
+  "description": "Meta Quest headset and controller battery, charging and connection status over ADB.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Orbit (Meta Quest)",
+    "description": "Quest battery pill with a detail popup.",
+    "category": "System",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}

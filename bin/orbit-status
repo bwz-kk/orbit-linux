@@ -1,0 +1,133 @@
+#!/usr/bin/env bash
+# orbit-status: print Meta Quest headset/controller status as one JSON line.
+#
+#   orbit-status            status JSON (used by the omarchy-shell widget)
+#   orbit-status wifi       switch a USB-connected headset to wireless ADB and save its address
+#   orbit-status reconnect  adb connect to the saved wireless address
+#
+# ORBIT_RAW=<file> parses a captured `adb shell` dump instead of talking to a device (tests).
+set -u
+
+CONF="${XDG_CONFIG_HOME:-$HOME/.config}/orbit-linux/wifi"
+
+# One adb shell round-trip; sections are separated by @@name marker lines.
+REMOTE_SCRIPT='
+echo @@battery; dumpsys battery
+ctl=$(rstest info --json 2>/dev/null)
+case "$ctl" in
+  *batteryLevel*) echo @@rstest; echo "$ctl" ;;
+  *) echo @@remote; dumpsys OVRRemoteService 2>/dev/null | grep Paired ;;
+esac
+echo @@power; dumpsys vrpowermanager 2>/dev/null | grep -m2 -E "^ *(State|Virtual proximity state):"
+echo @@prop
+getprop ro.product.model; getprop ro.serialno; getprop ro.build.display.id; getprop ro.vros.build.version
+echo @@ip; ip route 2>/dev/null | grep -m1 wlan
+'
+
+# All parsing happens in this single jq program (one process per poll).
+PARSE='
+def sections: reduce (split("\n")[] | sub("\r$"; "")) as $l ({cur: "", s: {}};
+  if ($l | startswith("@@")) then .cur = $l[2:] | .s[.cur] = []
+  else .s[.cur] += [$l] end) | .s;
+def kv: map(capture("^\\s*(?<k>[^:]+?):\\s*(?<v>.*)$")? | {(.k): .v}) | add // {};
+def num: (tonumber? // null);
+def cap: if . == null or . == "" then null else (.[0:1] | ascii_upcase) + (.[1:] | ascii_downcase) end;
+def cstatus: ascii_downcase |
+  if test("inactive") then "Idle"
+  elif test("active") then "Active"
+  elif test("disabled") then "Asleep"
+  elif test("search") then "Searching"
+  else cap end;
+def ctl($t; $lvl; $st): {side: $t, level: (if $lvl == null or $lvl < 0 then null else $lvl end), status: ($st | cstatus)};
+def jsons: (join("\n") | fromjson? | if type == "array" then .[] else . end) // (.[] | fromjson?);
+
+sections as $s
+| ($s.battery // [] | kv) as $b
+| ($b.status | num) as $code
+| ($s.prop // []) as $p
+| ([($s.rstest // [] | jsons | select(type == "object")
+      | ctl(if (.type | test("left"; "i")) then "left" else "right" end; .batteryLevel; .status // "")),
+    ($s.remote // [] | .[]
+      | capture("Type:\\s*(?<t>Left|Right).*?Battery:\\s*(?<b>-?\\d+)%.*? Status:\\s*(?<st>\\w+)")?
+      | ctl(.t | ascii_downcase; .b | num; .st))]
+   | map({(.side): {level, status}}) | add // {}) as $c
+| {
+    state: $state,
+    transport: $transport,
+    serial: ($p[1] // $serial),
+    model: ($p[0] // null),
+    os: (if ($p[3] // "") != "" then $p[3] else ($p[2] // null) end),
+    ip: (($s.ip // []) | join(" ") | capture("src (?<ip>[0-9.]+)")?.ip // null),
+    headset: {
+      level: (($b.level | num) as $l | if $l == null then null
+              else ($l * 100 / (($b.scale | num) // 100) | round) end),
+      charging: ($code == 2),
+      status: ({"1": "Unknown", "2": "Charging", "3": "Discharging", "4": "Not charging", "5": "Full"}[$code | tostring] // null),
+      temp: (($b.temperature | num) as $t | if $t == null then null else $t / 10 end),
+      plug: ([if $b["AC powered"] == "true" then "AC" else empty end,
+              if $b["USB powered"] == "true" then "USB" else empty end,
+              if $b["Wireless powered"] == "true" then "Wireless" else empty end] | first // null),
+      worn: (($s.power // [] | kv).State | cap)
+    },
+    left: ($c.left // {level: null, status: "Off"}),
+    right: ($c.right // {level: null, status: "Off"})
+  }
+'
+
+emit() {  # $1 state, $2 transport, $3 serial, stdin raw dump
+  jq -Rsc --arg state "$1" --arg transport "$2" --arg serial "$3" "$PARSE"
+}
+
+# Prints "serial<TAB>state" of the best device: ready before not-ready, USB before Wi-Fi.
+pick_device() {
+  adb devices 2>/dev/null | awk -F'\t' 'NF == 2 && $2 ~ /^(device|offline|unauthorized|authorizing)$/ {
+    print ($2 == "device" ? 0 : 2) + ($1 ~ /:/ ? 1 : 0) "\t" $1 "\t" $2 }' | sort -n | head -1 | cut -f2-
+}
+
+usb_serial() {
+  adb devices 2>/dev/null | awk -F'\t' '$2 == "device" && $1 !~ /:/ { print $1; exit }'
+}
+
+case "${1:-status}" in
+  wifi)
+    s=$(usb_serial)
+    [ -n "$s" ] || { echo "orbit: plug the headset in over USB first" >&2; exit 1; }
+    # Read the IP before tcpip: switching modes restarts adbd and drops the USB session.
+    ip=$(adb -s "$s" shell ip route 2>/dev/null | sed -nE 's/.*wlan.* src ([0-9.]+).*/\1/p' | head -1)
+    [ -n "$ip" ] || { echo "orbit: headset is not on Wi-Fi" >&2; exit 1; }
+    adb -s "$s" tcpip 5555 >/dev/null || exit 1
+    mkdir -p "${CONF%/*}" && echo "$ip:5555" > "$CONF"
+    sleep 2
+    adb connect "$ip:5555"
+    ;;
+  reconnect)
+    [ -f "$CONF" ] || { echo "orbit: no saved Wi-Fi address; run 'orbit-status wifi' over USB" >&2; exit 1; }
+    timeout 5 adb connect "$(cat "$CONF")"
+    ;;
+  status)
+    if [ -n "${ORBIT_RAW:-}" ]; then
+      emit connected usb "" < "$ORBIT_RAW"
+      exit
+    fi
+    command -v adb >/dev/null || { echo '{"state":"no-adb"}'; exit; }
+    dev=$(pick_device)
+    if [ -z "$dev" ] && [ -f "$CONF" ]; then
+      timeout 3 adb connect "$(cat "$CONF")" >/dev/null 2>&1
+      dev=$(pick_device)
+    fi
+    serial=${dev%%$'\t'*}
+    state=${dev#*$'\t'}
+    transport=usb
+    [[ $serial == *:* ]] && transport=wifi
+    case "$state" in
+      "") echo '{"state":"disconnected"}' ;;
+      device) adb -s "$serial" shell "$REMOTE_SCRIPT" 2>/dev/null | emit connected "$transport" "$serial" ;;
+      authorizing) printf '{"state":"unauthorized","transport":"%s"}\n' "$transport" ;;
+      *) printf '{"state":"%s","transport":"%s"}\n' "$state" "$transport" ;;
+    esac
+    ;;
+  *)
+    echo "usage: orbit-status [status|wifi|reconnect]" >&2
+    exit 2
+    ;;
+esac
