@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell.Io
+import Quickshell.Bluetooth
 import qs.Commons
 import qs.Commons as Commons
 import qs.Ui
@@ -76,6 +77,7 @@ Ui.Panel {
     var parsed
     try { parsed = JSON.parse(text) } catch (e) { return }
     st = parsed
+    if (connected) wakeBurst.stop()
     if (parsed.model) lastModel = parsed.model
     updateEta()
     if (wasConnected !== null && connected !== wasConnected)
@@ -104,6 +106,18 @@ Ui.Panel {
     : ""
 
   onOpenedChanged: if (opened) { now = Date.now(); refresh() }
+
+  // Connecting the Quest from the Bluetooth menu wakes it, but its Wi-Fi takes
+  // a while to come back. Watch for that connect and poll every 5 s for up to
+  // 2 min instead of waiting for the next 30-60 s poll.
+  readonly property var questBt: {
+    var devs = Bluetooth.devices ? Bluetooth.devices.values : []
+    for (var i = 0; i < devs.length; i++)
+      if (String(devs[i].name || "").indexOf("Quest") === 0) return devs[i]
+    return null
+  }
+  readonly property bool btConnected: questBt ? questBt.connected === true : false
+  onBtConnectedChanged: if (btConnected && !connected) { wakeBurst.left = 24; wakeBurst.restart() }
 
   Process {
     id: statusProc
@@ -135,6 +149,18 @@ Ui.Panel {
     repeat: true
     triggeredOnStart: true
     onTriggered: root.refresh()
+  }
+
+  Timer {
+    id: wakeBurst
+    property int left: 0
+    interval: 5000
+    repeat: true
+    triggeredOnStart: true
+    onTriggered: {
+      root.refresh()
+      if (--left <= 0) stop()
+    }
   }
 
   Timer {
