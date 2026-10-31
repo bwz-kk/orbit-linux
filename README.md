@@ -46,7 +46,7 @@ While the headset is on USB, open the card and press **Set up Wi-Fi** (or run `b
 
 The last good reading is cached in `~/.cache/orbit-linux/last.json`. While the headset sleeps or is away, the card keeps showing it, dimmed, with "last seen N min ago".
 
-Polling is every 60 s while the card is closed (30 s with no headset, where only `adb devices` runs) and every 5 s while it is open. No extra daemon besides the adb server.
+Polling is every 60 s while the card is closed (30 s with no headset, where only `adb devices` runs). Opening the card does not connect to the headset; press the refresh button in the card header to connect and update on demand. No extra daemon besides the adb server.
 
 These `dumpsys` outputs are not documented by Meta and may change with Horizon OS updates.
 

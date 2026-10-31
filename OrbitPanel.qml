@@ -109,7 +109,9 @@ Ui.Panel {
     : st.state === "disconnected" ? "Plug in over USB, or Reconnect for Wi-Fi."
     : ""
 
-  onOpenedChanged: if (opened) { now = Date.now(); refresh() }
+  // Opening the card only shows the last reading; connecting to the headset is
+  // manual (header button) so a sleeping headset is not kept awake.
+  onOpenedChanged: if (opened) now = Date.now()
 
   // Connecting the Quest from the Bluetooth menu wakes it, but its Wi-Fi takes
   // a while to come back. Watch for that connect and poll every 5 s for up to
@@ -146,9 +148,9 @@ Ui.Panel {
 
   Process { id: notifyProc }
 
-  // Adaptive polling: fast only while the popup is open.
+  // Background polling; the card being open does not speed it up.
   Timer {
-    interval: root.opened ? 5000 : (root.connected ? 60000 : 30000)
+    interval: root.connected ? 60000 : 30000
     running: true
     repeat: true
     triggeredOnStart: true
@@ -326,7 +328,7 @@ Ui.Panel {
               iconText: "󰑐"
               iconSpinning: statusProc.running
               bordered: true
-              tooltipText: "Refresh"
+              tooltipText: "Connect & update"
               onClicked: root.refresh()
             }
           }
