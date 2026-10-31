@@ -52,7 +52,7 @@ Ui.BarWidget {
 
     onPressed: function(b) {
       if (!root.bar || !panelLoader.item) return
-      if (b === Qt.MiddleButton) panelLoader.item.refresh(true)
+      if (b === Qt.MiddleButton) panelLoader.item.connectNow()
       else panelLoader.item.toggle()
     }
   }

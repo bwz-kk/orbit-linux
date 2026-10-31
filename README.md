@@ -46,7 +46,7 @@ While the headset is on USB, open the card and press **Set up Wi-Fi** (or run `b
 
 The last good reading is cached in `~/.cache/orbit-linux/last.json`. While the headset sleeps or is away, the card keeps showing it, dimmed, with "last seen N min ago".
 
-Orbit checks the headset every 60 s (30 s when it is not connected), but background checks never reconnect over Wi-Fi: once the headset sleeps, Orbit leaves it alone. It reconnects only when you press the refresh button in the card header (or middle-click the bar icon), connect the Quest from the Bluetooth menu, or plug it in over USB. Opening the card does not connect either. No extra daemon besides the adb server.
+Orbit checks the headset every 60 s (30 s when it is not connected), but background checks never reconnect over Wi-Fi: once the headset sleeps, Orbit leaves it alone. It reconnects only when you press the refresh button in the card header (or middle-click the bar icon), connect the Quest from the Bluetooth menu, or plug it in over USB. If the headset is fully asleep, the refresh button wakes it with a Bluetooth connect attempt (`orbit-status wake`); its Wi-Fi takes about 1–2 minutes to come back, and it goes back to sleep on its own afterwards. Opening the card does not connect either. No extra daemon besides the adb server.
 
 These `dumpsys` outputs are not documented by Meta and may change with Horizon OS updates.
 

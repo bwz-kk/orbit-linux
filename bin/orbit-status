@@ -5,6 +5,7 @@
 #   orbit-status status --connect   same, but first reconnects to the saved Wi-Fi address if needed
 #   orbit-status wifi       switch a USB-connected headset to wireless ADB and save its address
 #   orbit-status reconnect  adb connect to the saved wireless address
+#   orbit-status wake       wake a sleeping headset with a Bluetooth connect attempt
 #
 # ORBIT_RAW=<file> parses a captured `adb shell` dump instead of talking to a device (tests).
 set -u
@@ -121,6 +122,19 @@ case "${1:-status}" in
     mkdir -p "${CONF%/*}" && echo "$ip:5555" > "$CONF"
     sleep 2
     adb connect "$ip:5555"
+    ;;
+  wake)
+    # A Bluetooth connect attempt wakes a sleeping headset (pairing is refused, but
+    # its Wi-Fi comes back within ~1-2 min). Its BLE address rotates, so find it
+    # by name, scanning if the cached one is gone or stale.
+    find_quest() { bluetoothctl devices 2>/dev/null | awk '/ Quest/ { print $2; exit }'; }
+    try_wake() { [ -n "$1" ] && timeout 12 bluetoothctl connect "$1" 2>/dev/null | grep -q 'Connection successful'; }
+    addr=$(find_quest)
+    if ! try_wake "$addr"; then
+      timeout 12 bluetoothctl --timeout 10 scan le >/dev/null 2>&1
+      addr=$(find_quest)
+      try_wake "$addr" || { echo "orbit: headset not found over Bluetooth (is Bluetooth on and the headset nearby?)" >&2; exit 1; }
+    fi
     ;;
   reconnect)
     [ -f "$CONF" ] || { echo "orbit: no saved Wi-Fi address; run 'orbit-status wifi' over USB" >&2; exit 1; }

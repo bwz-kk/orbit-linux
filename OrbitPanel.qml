@@ -50,6 +50,15 @@ Ui.Panel {
     statusProc.running = true
   }
 
+  // Manual "wake & update": read now if reachable; otherwise wake the headset over
+  // Bluetooth and keep trying (wakeBurst) while its Wi-Fi comes back.
+  function connectNow() {
+    if (connected) { refresh(true); return }
+    runAction("wake")
+    wakeBurst.left = 24
+    wakeBurst.restart()
+  }
+
   function runAction(arg) {
     if (actionProc.running) return
     actionError = ""
@@ -145,6 +154,7 @@ Ui.Panel {
     }
     onExited: function(code) {
       if (code === 0) root.actionError = ""
+      else if (actionProc.command[1] === "wake") wakeBurst.stop()
       root.refresh()
     }
   }
@@ -329,10 +339,10 @@ Ui.Panel {
               anchors.right: parent.right
               anchors.verticalCenter: parent.verticalCenter
               iconText: "󰑐"
-              iconSpinning: statusProc.running
+              iconSpinning: statusProc.running || wakeBurst.running
               bordered: true
-              tooltipText: "Connect & update"
-              onClicked: root.refresh(true)
+              tooltipText: "Wake & update"
+              onClicked: root.connectNow()
             }
           }
 
@@ -397,7 +407,8 @@ Ui.Panel {
                 width: parent.width
                 wrapMode: Text.WordWrap
                 color: root.headset.charging && !root.st.stale ? root.accent : root.muted
-                text: root.st.stale ? root.stateText + " · " + root.agoText()
+                text: wakeBurst.running && !root.connected ? "Waking headset… (up to 2 min)"
+                  : root.st.stale ? root.stateText + " · " + root.agoText()
                   : (root.headset.charging ? "󱐋 " : "") + (root.headset.status || "—")
                     + (root.etaMinutes > 0 ? " · full in ~" + root.etaMinutes + " min" : "")
               }
