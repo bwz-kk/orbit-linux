@@ -40,13 +40,14 @@ Ui.BarWidget {
     }
   }
 
-  BarIconButton {
+  // WidgetButton (not BarIconButton) so the "82%" label renders as regular
+  // bar text in the theme font instead of being squeezed into an icon slot.
+  WidgetButton {
     id: button
     anchors.fill: parent
     bar: root.bar
     text: panelLoader.item ? panelLoader.item.label : "󰢔"
     dimmed: !panelLoader.item || !panelLoader.item.connected
-    slotSize: Style.bar.statusSlot
     tooltipText: ""
 
     onPressed: function(b) {

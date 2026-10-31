@@ -224,7 +224,7 @@ Ui.Panel {
     owner: root.hostWidget || root
     bar: root.bar
     open: root.opened
-    centerOnBar: true
+    centerOnBar: false
     focusTarget: keyCatcher
     contentWidth: panel.fittedContentWidth(Style.space(400))
     contentHeight: panel.fittedContentHeight(content.item ? content.item.implicitHeight : 0)
