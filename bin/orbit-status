@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # orbit-status: print Meta Quest headset/controller status as one JSON line.
 #
-#   orbit-status            status JSON (used by the omarchy-shell widget)
+#   orbit-status            status JSON (used by the omarchy-shell widget); never reconnects Wi-Fi
+#   orbit-status status --connect   same, but first reconnects to the saved Wi-Fi address if needed
 #   orbit-status wifi       switch a USB-connected headset to wireless ADB and save its address
 #   orbit-status reconnect  adb connect to the saved wireless address
 #
@@ -132,7 +133,8 @@ case "${1:-status}" in
     fi
     command -v adb >/dev/null || { echo '{"state":"no-adb"}'; exit; }
     dev=$(pick_device)
-    if [ -z "$dev" ] && [ -f "$CONF" ]; then
+    # Reconnecting reaches a headset in standby, so only do it when asked (manual refresh).
+    if [ -z "$dev" ] && [ "${2:-}" = --connect ] && [ -f "$CONF" ]; then
       timeout 3 adb connect "$(cat "$CONF")" >/dev/null 2>&1
       dev=$(pick_device)
     fi

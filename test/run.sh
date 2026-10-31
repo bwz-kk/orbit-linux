@@ -47,6 +47,15 @@ stale=".stale and .seen == $seen and .headset.level == 82 and .left.level == 100
 assert asleep-shows-last "$(fake ../bin/orbit-status)" ".state == \"offline\" and .transport == \"wifi\" and $stale"
 assert gone-shows-last "$(FAKE_ADB_DEVICES= fake ../bin/orbit-status)" ".state == \"disconnected\" and .transport == null and $stale"
 
+# Background polls must never reconnect Wi-Fi (keeps a sleeping headset asleep);
+# only an explicit --connect does.
+mkdir -p "$XDG_CONFIG_HOME/orbit-linux" && echo 10.0.0.9:5555 > "$XDG_CONFIG_HOME/orbit-linux/wifi"
+: > "$tmp/adb.log"
+FAKE_ADB_DEVICES= fake ../bin/orbit-status >/dev/null
+if grep -q connect "$tmp/adb.log"; then echo "FAIL background-no-reconnect: $(cat "$tmp/adb.log")"; fail=1; else echo "ok   background-no-reconnect"; fi
+FAKE_ADB_DEVICES= fake ../bin/orbit-status status --connect >/dev/null
+if grep -qx 'connect 10.0.0.9:5555' "$tmp/adb.log"; then echo "ok   manual-reconnect"; else echo "FAIL manual-reconnect: $(cat "$tmp/adb.log")"; fail=1; fi
+
 # Hand-made: charging over USB, one controller asleep, one disconnected (-1%), no Horizon build prop.
 check synthetic-charging.txt '.os == "78.0" and .ip == "192.168.1.42"
   and .headset == {level: 89, charging: true, status: "Charging", temp: 34, plug: "USB", worn: "Standby"}

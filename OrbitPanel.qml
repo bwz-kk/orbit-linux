@@ -42,8 +42,12 @@ Ui.Panel {
   function levelText(l) { return l == null ? "—" : l + "%" }
   function levelColor(l) { return l != null && l <= 20 ? urgent : accent }
 
-  function refresh() {
-    if (!statusProc.running) statusProc.running = true
+  // reconnect=true (manual refresh, Bluetooth wake) may reconnect Wi-Fi ADB;
+  // background polls never do, so a sleeping headset is left alone.
+  function refresh(reconnect) {
+    if (statusProc.running) return
+    statusProc.command = reconnect ? [script, "status", "--connect"] : [script]
+    statusProc.running = true
   }
 
   function runAction(arg) {
@@ -127,7 +131,6 @@ Ui.Panel {
 
   Process {
     id: statusProc
-    command: [root.script]
     stdout: StdioCollector {
       waitForEnd: true
       onStreamFinished: root.apply(text)
@@ -164,7 +167,7 @@ Ui.Panel {
     repeat: true
     triggeredOnStart: true
     onTriggered: {
-      root.refresh()
+      root.refresh(true)
       if (--left <= 0) stop()
     }
   }
@@ -329,7 +332,7 @@ Ui.Panel {
               iconSpinning: statusProc.running
               bordered: true
               tooltipText: "Connect & update"
-              onClicked: root.refresh()
+              onClicked: root.refresh(true)
             }
           }
 
