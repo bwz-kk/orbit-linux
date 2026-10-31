@@ -13,12 +13,16 @@ check() {  # $1 fixture, $2 jq assertion
   fi
 }
 
-check remote.txt '.state == "connected" and .model == "Quest 3S" and .os == "78.0" and .ip == "192.168.1.42"
-  and .headset == {level: 89, charging: true, status: "Charging", temp: 34, plug: "USB", worn: "Standby"}
-  and .left == {level: 60, status: "Asleep"} and .right == {level: null, status: "Searching"}'
+# Real Quest 3S captures (serials redacted). Both controller paths must agree.
+real='.state == "connected" and .model == "Quest 3S" and .os == "209" and .ip == "192.168.1.50"
+  and .headset == {level: 82, charging: false, status: "Discharging", temp: 33, plug: "AC", worn: "Worn"}
+  and .left == {level: 100, status: "Idle"} and .right == {level: 100, status: "Idle"}'
+check quest3s-rstest.txt "$real"
+check quest3s-remote.txt "$real"
 
-check rstest.txt '.os == "UP1A.231005.007.A1" and .ip == null
-  and .headset == {level: 41, charging: false, status: "Discharging", temp: 31.2, plug: null, worn: null}
-  and .left == {level: 92, status: "Active"} and .right == {level: 40, status: "Asleep"}'
+# Hand-made: charging over USB, one controller asleep, one disconnected (-1%), no Horizon build prop.
+check synthetic-charging.txt '.os == "78.0" and .ip == "192.168.1.42"
+  and .headset == {level: 89, charging: true, status: "Charging", temp: 34, plug: "USB", worn: "Standby"}
+  and .left == {level: 60, status: "Asleep"} and .right == {level: null, status: "Asleep"}'
 
 exit $fail

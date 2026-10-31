@@ -48,8 +48,8 @@ sections as $s
 | ([($s.rstest // [] | jsons | select(type == "object")
       | ctl(if (.type | test("left"; "i")) then "left" else "right" end; .batteryLevel; .status // "")),
     ($s.remote // [] | .[]
-      | capture("Type:\\s*(?<t>Left|Right).*?Battery:\\s*(?<b>-?\\d+)%.*? Status:\\s*(?<st>\\w+)")?
-      | ctl(.t | ascii_downcase; .b | num; .st))]
+      | capture("Type:\\s*(?<t>Left|Right).*?Battery:\\s*(?<b>-?\\d+)%.*? Status:\\s*(?<st>\\w+)(.*?ExternalStatus:\\s*(?<ext>\\w+))?")?
+      | ctl(.t | ascii_downcase; .b | num; .ext // .st))]
    | map({(.side): {level, status}}) | add // {}) as $c
 | {
     state: $state,
@@ -67,7 +67,11 @@ sections as $s
       plug: ([if $b["AC powered"] == "true" then "AC" else empty end,
               if $b["USB powered"] == "true" then "USB" else empty end,
               if $b["Wireless powered"] == "true" then "Wireless" else empty end] | first // null),
-      worn: (($s.power // [] | kv).State | cap)
+      worn: (($s.power // [] | kv).State // "" |
+             if . == "" then null
+             elif test("UNMOUNTED") then "Not worn"
+             elif test("MOUNTED") then "Worn"
+             else (split("_") | last | cap) end)
     },
     left: ($c.left // {level: null, status: "Off"}),
     right: ($c.right // {level: null, status: "Off"})

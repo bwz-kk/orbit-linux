@@ -1,0 +1,65 @@
+@@battery
+Current Battery Service state:
+  AC powered: true
+  USB powered: false
+  Wireless powered: false
+  Dock powered: false
+  Max charging current: 3000000
+  Max charging voltage: 5000000
+  Weak Charger: false
+  Charge counter: 3581281
+  status: 3
+  health: 2
+  present: true
+  level: 82
+  scale: 100
+  voltage: 4187
+  temperature: 330
+  technology: Li-ion
+@@rstest
+[
+	{
+		"batteryLevel" : 100,
+		"brightnessLevel" : "GOOD",
+		"controllerType" : "RUBYPRQ",
+		"errors" : "",
+		"firmwareVersion" : "209.29.41",
+		"hardwareRevision" : "0x9a",
+		"id" : "aaaaaaaaaaaaaaa1",
+		"imuModel" : "ICM42686",
+		"lastConnectedTimestamp" : 213.43312348900002,
+		"model" : "RUBY",
+		"modelId" : 5,
+		"serial" : "2L0000000000L1",
+		"status" : "CONNECTED_INACTIVE",
+		"trackingStatus" : "NONE",
+		"type" : "LeftHand"
+	},
+	{
+		"batteryLevel" : 100,
+		"brightnessLevel" : "GOOD",
+		"controllerType" : "RUBYPRQ",
+		"errors" : "",
+		"firmwareVersion" : "209.29.41",
+		"hardwareRevision" : "0x9a",
+		"id" : "aaaaaaaaaaaaaaa2",
+		"imuModel" : "ICM42686",
+		"lastConnectedTimestamp" : 212.95870839000003,
+		"model" : "RUBY",
+		"modelId" : 5,
+		"serial" : "2L0000000000R1",
+		"status" : "CONNECTED_INACTIVE",
+		"trackingStatus" : "NONE",
+		"type" : "RightHand"
+	}
+]
+@@power
+Virtual proximity state: DISABLED
+State: HEADSET_MOUNTED
+@@prop
+Quest 3S
+340000000000TEST
+UP1A.231005.007.A1
+209
+@@ip
+192.168.1.0/24 dev wlan0 proto kernel scope link src 192.168.1.50 

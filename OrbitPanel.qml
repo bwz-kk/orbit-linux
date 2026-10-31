@@ -265,7 +265,7 @@ Ui.Panel {
               anchors.right: pill.left
               anchors.verticalCenter: parent.verticalCenter
               Label { width: parent.width; text: "Orbit"; font.pixelSize: Style.font.heading; font.bold: true }
-              Label { width: parent.width; text: root.model + (root.st.os ? " · " + root.st.os : ""); color: root.muted; font.pixelSize: Style.font.bodySmall }
+              Label { width: parent.width; text: root.model + (root.st.os ? " · OS " + root.st.os : ""); color: root.muted; font.pixelSize: Style.font.bodySmall }
             }
 
             Rectangle {
