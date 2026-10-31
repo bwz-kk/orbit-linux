@@ -25,4 +25,15 @@ check synthetic-charging.txt '.os == "78.0" and .ip == "192.168.1.42"
   and .headset == {level: 89, charging: true, status: "Charging", temp: 34, plug: "USB", worn: "Standby"}
   and .left == {level: 60, status: "Asleep"} and .right == {level: null, status: "Asleep"}'
 
+# Sleeping Wi-Fi headset: must time out as offline and drop the dead transport, not hang.
+log=$(mktemp)
+start=$SECONDS
+out=$(PATH="$PWD/fake-adb:$PATH" FAKE_ADB_LOG="$log" ORBIT_TIMEOUT=1 ../bin/orbit-status)
+if [ "$out" = '{"state":"offline","transport":"wifi"}' ] && grep -qx 'disconnect 10.0.0.9:5555' "$log" && (( SECONDS - start < 5 )); then
+  echo "ok   asleep-wifi-timeout"
+else
+  echo "FAIL asleep-wifi-timeout: $out ($((SECONDS - start))s) $(cat "$log")"; fail=1
+fi
+rm -f "$log"
+
 exit $fail

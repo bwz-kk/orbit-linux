@@ -84,7 +84,7 @@ emit() {  # $1 state, $2 transport, $3 serial, stdin raw dump
 
 # Prints "serial<TAB>state" of the best device: ready before not-ready, USB before Wi-Fi.
 pick_device() {
-  adb devices 2>/dev/null | awk -F'\t' 'NF == 2 && $2 ~ /^(device|offline|unauthorized|authorizing)$/ {
+  timeout 5 adb devices 2>/dev/null | awk -F'\t' 'NF == 2 && $2 ~ /^(device|offline|unauthorized|authorizing)$/ {
     print ($2 == "device" ? 0 : 2) + ($1 ~ /:/ ? 1 : 0) "\t" $1 "\t" $2 }' | sort -n | head -1 | cut -f2-
 }
 
@@ -123,9 +123,17 @@ case "${1:-status}" in
     state=${dev#*$'\t'}
     transport=usb
     [[ $serial == *:* ]] && transport=wifi
+    # A sleeping headset keeps a Wi-Fi transport listed as "device" (or "offline")
+    # while every command stalls. Time out, drop the dead transport, and let the
+    # next poll reconnect from the saved address.
+    if [ "$state" = device ]; then
+      raw=$(timeout "${ORBIT_TIMEOUT:-8}" adb -s "$serial" shell "$REMOTE_SCRIPT" 2>/dev/null)
+      [ -n "$raw" ] || state=offline
+    fi
+    [ "$state" = offline ] && [ "$transport" = wifi ] && timeout 3 adb disconnect "$serial" >/dev/null 2>&1
     case "$state" in
       "") echo '{"state":"disconnected"}' ;;
-      device) adb -s "$serial" shell "$REMOTE_SCRIPT" 2>/dev/null | emit connected "$transport" "$serial" ;;
+      device) emit connected "$transport" "$serial" <<<"$raw" ;;
       authorizing) printf '{"state":"unauthorized","transport":"%s"}\n' "$transport" ;;
       *) printf '{"state":"%s","transport":"%s"}\n' "$state" "$transport" ;;
     esac
