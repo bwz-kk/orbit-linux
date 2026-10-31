@@ -25,7 +25,7 @@ Ui.Panel {
   readonly property bool connected: st.state === "connected"
   readonly property string model: st.model || lastModel
   property string lastModel: "Meta Quest"
-  property var wasConnected: null      // null until the first poll, so startup is silent
+  property var wasOnline: null         // null until the first poll, so startup is silent
   property real now: Date.now()
   property var chargeStart: null       // {t, level} when charging began, for the ETA
   property int etaMinutes: -1
@@ -80,9 +80,13 @@ Ui.Panel {
     if (connected) wakeBurst.stop()
     if (parsed.model) lastModel = parsed.model
     updateEta()
-    if (wasConnected !== null && connected !== wasConnected)
-      notify(model + (connected ? " connected" : " disconnected"), summary())
-    wasConnected = connected
+    // In standby the headset's Wi-Fi flaps between connected/offline every few
+    // seconds. Only count it as gone after 2 min without a live reading, so
+    // notifications fire on real arrivals/departures, not on each flap.
+    var online = connected || (st.seen > 0 && Date.now() / 1000 - st.seen < 120)
+    if (wasOnline !== null && online !== wasOnline)
+      notify(model + (online ? " connected" : " disconnected"), summary())
+    wasOnline = online
   }
 
   // st.seen is when the reading was taken; while stale it is the last good one.
