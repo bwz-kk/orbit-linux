@@ -124,17 +124,17 @@ case "${1:-status}" in
     adb connect "$ip:5555"
     ;;
   wake)
-    # A Bluetooth connect attempt wakes a sleeping headset (pairing is refused, but
-    # its Wi-Fi comes back within ~1-2 min). Its BLE address rotates, so find it
-    # by name, scanning if the cached one is gone or stale.
-    find_quest() { bluetoothctl devices 2>/dev/null | awk '/ Quest/ { print $2; exit }'; }
-    try_wake() { [ -n "$1" ] && timeout 12 bluetoothctl connect "$1" 2>/dev/null | grep -q 'Connection successful'; }
-    addr=$(find_quest)
-    if ! try_wake "$addr"; then
-      timeout 12 bluetoothctl --timeout 10 scan le >/dev/null 2>&1
-      addr=$(find_quest)
-      try_wake "$addr" || { echo "orbit: headset not found over Bluetooth (is Bluetooth on and the headset nearby?)" >&2; exit 1; }
-    fi
+    # A Bluetooth connect attempt wakes a headset in standby (pairing is refused,
+    # but its Wi-Fi comes back within ~1 min). Off the charger and fully asleep it
+    # stops advertising, and then nothing can reach it from the PC. Its BLE
+    # address rotates, so look for a Quest that was actually seen in a fresh scan.
+    timeout 12 bluetoothctl --timeout 8 scan le >/dev/null 2>&1
+    addr=$(bluetoothctl devices 2>/dev/null | awk '/ Quest/ { print $2 }' | while read -r a; do
+      bluetoothctl info "$a" 2>/dev/null | grep -q 'RSSI:' && { echo "$a"; break; }
+    done)
+    [ -n "$addr" ] || { echo "Headset is fully asleep and not reachable over Bluetooth. Press its power button or put it on the charger." >&2; exit 1; }
+    timeout 12 bluetoothctl connect "$addr" 2>/dev/null | grep -q 'Connection successful' \
+      || { echo "Bluetooth wake failed. Try again, or press the headset's power button." >&2; exit 1; }
     ;;
   reconnect)
     [ -f "$CONF" ] || { echo "orbit: no saved Wi-Fi address; run 'orbit-status wifi' over USB" >&2; exit 1; }

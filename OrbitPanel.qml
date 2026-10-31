@@ -12,6 +12,7 @@ Ui.Panel {
   id: root
   moduleName: "bwzkk.orbit"
   ipcTarget: "bwzkk.orbit"
+  manageIpc: false
 
   property var anchorItem: null
   property var hostWidget: null
@@ -160,6 +161,17 @@ Ui.Panel {
   }
 
   Process { id: notifyProc }
+
+  // omarchy-shell bwzkk.orbit <open|close|toggle|wake>
+  IpcHandler {
+    target: "bwzkk.orbit"
+    function open(): void { root.open() }
+    function close(): void { root.close() }
+    function show(): void { root.open() }
+    function hide(): void { root.close() }
+    function toggle(): void { root.toggle() }
+    function wake(): void { root.connectNow() }
+  }
 
   // Background polling; the card being open does not speed it up.
   Timer {
