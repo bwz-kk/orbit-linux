@@ -9,6 +9,8 @@
 set -u
 
 CONF="${XDG_CONFIG_HOME:-$HOME/.config}/orbit-linux/wifi"
+# Last good reading, shown (marked stale) while the headset sleeps or is away.
+CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/orbit-linux/last.json"
 
 # One adb shell round-trip; sections are separated by @@name marker lines.
 REMOTE_SCRIPT='
@@ -53,6 +55,7 @@ sections as $s
    | map({(.side): {level, status}}) | add // {}) as $c
 | {
     state: $state,
+    seen: (now | floor),
     transport: $transport,
     serial: ($p[1] // $serial),
     model: ($p[0] // null),
@@ -80,6 +83,20 @@ sections as $s
 
 emit() {  # $1 state, $2 transport, $3 serial, stdin raw dump
   jq -Rsc --arg state "$1" --arg transport "$2" --arg serial "$3" "$PARSE"
+}
+
+live() {  # same args as emit; prints the reading and caches it
+  local out
+  out=$(emit "$@") || return
+  printf '%s\n' "$out"
+  mkdir -p "${CACHE%/*}" && printf '%s\n' "$out" > "$CACHE.tmp" && mv "$CACHE.tmp" "$CACHE"
+}
+
+stale() {  # $1 state, $2 transport ("" = none): last cached reading under the new state
+  jq -nc --arg state "$1" --arg transport "$2" --slurpfile last <(cat "$CACHE" 2>/dev/null) '
+    ($last[0] // {}) as $c
+    | ($c + {state: $state, transport: (if $transport == "" then null else $transport end)})
+    + (if $c == {} then {} else {stale: true} end)'
 }
 
 # Prints "serial<TAB>state" of the best device: ready before not-ready, USB before Wi-Fi.
@@ -110,7 +127,7 @@ case "${1:-status}" in
     ;;
   status)
     if [ -n "${ORBIT_RAW:-}" ]; then
-      emit connected usb "" < "$ORBIT_RAW"
+      live connected usb "" < "$ORBIT_RAW"
       exit
     fi
     command -v adb >/dev/null || { echo '{"state":"no-adb"}'; exit; }
@@ -132,10 +149,10 @@ case "${1:-status}" in
     fi
     [ "$state" = offline ] && [ "$transport" = wifi ] && timeout 3 adb disconnect "$serial" >/dev/null 2>&1
     case "$state" in
-      "") echo '{"state":"disconnected"}' ;;
-      device) emit connected "$transport" "$serial" <<<"$raw" ;;
-      authorizing) printf '{"state":"unauthorized","transport":"%s"}\n' "$transport" ;;
-      *) printf '{"state":"%s","transport":"%s"}\n' "$state" "$transport" ;;
+      "") stale disconnected "" ;;
+      device) live connected "$transport" "$serial" <<<"$raw" ;;
+      authorizing) stale unauthorized "$transport" ;;
+      *) stale "$state" "$transport" ;;
     esac
     ;;
   *)

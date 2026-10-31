@@ -25,13 +25,12 @@ Ui.Panel {
   readonly property string model: st.model || lastModel
   property string lastModel: "Meta Quest"
   property var wasConnected: null      // null until the first poll, so startup is silent
-  property real lastSync: 0
   property real now: Date.now()
   property var chargeStart: null       // {t, level} when charging began, for the ETA
   property int etaMinutes: -1
   property string actionError: ""
 
-  readonly property string label: "󰢔" + (connected && headset.level != null ? " " + headset.level + "%" : "")
+  readonly property string label: "󰢔" + (headset.level != null ? " " + headset.level + "%" : "")
 
   // ---- Theme shorthands
   readonly property color fg: Commons.Color.popups.text
@@ -77,18 +76,20 @@ Ui.Panel {
     var parsed
     try { parsed = JSON.parse(text) } catch (e) { return }
     st = parsed
-    lastSync = Date.now()
     if (parsed.model) lastModel = parsed.model
     updateEta()
     if (wasConnected !== null && connected !== wasConnected)
-      notify(model + (connected ? " connected" : " disconnected"), connected ? summary() : "")
+      notify(model + (connected ? " connected" : " disconnected"), summary())
     wasConnected = connected
   }
 
+  // st.seen is when the reading was taken; while stale it is the last good one.
   function agoText() {
-    if (!lastSync) return "never synced"
-    var s = Math.max(0, Math.round((now - lastSync) / 1000))
-    return s < 5 ? "synced just now" : s < 60 ? "synced " + s + "s ago" : "synced " + Math.round(s / 60) + "m ago"
+    if (!st.seen) return connected ? "synced just now" : "no reading yet"
+    var s = Math.max(0, Math.round(now / 1000 - st.seen))
+    var t = s < 60 ? s + "s" : s < 3600 ? Math.round(s / 60) + " min" : Math.round(s / 3600) + " h"
+    if (st.stale) return "last seen " + (s < 60 ? "just now" : t + " ago")
+    return s < 5 ? "synced just now" : "synced " + t + " ago"
   }
 
   readonly property string stateText: ({
@@ -360,9 +361,10 @@ Ui.Panel {
               Label {
                 width: parent.width
                 wrapMode: Text.WordWrap
-                color: root.headset.charging ? root.accent : root.muted
-                text: (root.headset.charging ? "󱐋 " : "") + (root.headset.status || "—")
-                  + (root.etaMinutes > 0 ? " · full in ~" + root.etaMinutes + " min" : "")
+                color: root.headset.charging && !root.st.stale ? root.accent : root.muted
+                text: root.st.stale ? root.stateText + " · " + root.agoText()
+                  : (root.headset.charging ? "󱐋 " : "") + (root.headset.status || "—")
+                    + (root.etaMinutes > 0 ? " · full in ~" + root.etaMinutes + " min" : "")
               }
               Flow {
                 width: parent.width

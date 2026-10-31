@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# Stand-in for adb: a Wi-Fi headset that is listed as "device" but asleep,
-# so every shell command stalls. Logs disconnects to $FAKE_ADB_LOG.
+# Stand-in for adb. By default: a Wi-Fi headset listed as "device" but asleep, so
+# every shell command stalls. FAKE_ADB_DEVICES overrides the device lines
+# (empty = nothing attached). Logs disconnects to $FAKE_ADB_LOG.
 case "$1" in
-  devices) printf 'List of devices attached\n10.0.0.9:5555\tdevice\n\n' ;;
+  devices) printf 'List of devices attached\n%b\n\n' "${FAKE_ADB_DEVICES-10.0.0.9:5555\tdevice}" ;;
   disconnect) echo "disconnect $2" >> "$FAKE_ADB_LOG" ;;
+  connect) ;;
   -s) sleep 30 ;;
 esac
