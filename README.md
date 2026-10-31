@@ -60,4 +60,4 @@ rsync -a --delete --exclude .git --exclude test ./ ~/.config/omarchy/plugins/bwz
 
 Don't symlink the repo into `~/.config/omarchy/plugins/`: Quickshell caches files from symlinked plugin dirs and stops picking up edits.
 
-MIT licensed, see [LICENSE](LICENSE). Not affiliated with Meta. "Meta Quest" is a trademark of Meta Platforms, Inc.
+Contributions welcome, see [CONTRIBUTING.md](CONTRIBUTING.md). MIT licensed, see [LICENSE](LICENSE). Not affiliated with Meta. "Meta Quest" is a trademark of Meta Platforms, Inc.
