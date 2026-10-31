@@ -27,6 +27,12 @@ omarchy plugin add https://github.com/bwz-kk/orbit-linux.git --enable
 
 While the headset is on USB, open the card and press **Set up Wi-Fi** (or run `bin/orbit-status wifi`). The address is saved to `~/.config/orbit-linux/wifi`, and Orbit reconnects to it automatically when the headset is not attached. Wireless ADB stops after the headset reboots; plug it in and press **Set up Wi-Fi** again.
 
+> **Security warning:** Set up Wi-Fi runs `adb tcpip 5555`, which leaves ADB listening on port 5555 of the headset's network until it reboots. Any device on the same network can attempt to connect. A new computer still has to be approved with the "Allow USB debugging" prompt inside the headset, so:
+>
+> - Only use wireless mode on networks you trust (your home network, not public or shared Wi-Fi).
+> - Never accept a debugging prompt in the headset that you did not trigger yourself.
+> - To close the port, reboot the headset, or run `adb usb` while it is connected.
+
 ## How it works
 
 `bin/orbit-status` makes one `adb shell` call per poll and prints a single JSON line:
@@ -52,4 +58,4 @@ rsync -a --delete --exclude .git --exclude test ./ ~/.config/omarchy/plugins/bwz
 
 Don't symlink the repo into `~/.config/omarchy/plugins/`: Quickshell caches files from symlinked plugin dirs and stops picking up edits.
 
-Not affiliated with Meta. "Meta Quest" is a trademark of Meta Platforms, Inc.
+MIT licensed, see [LICENSE](LICENSE). Not affiliated with Meta. "Meta Quest" is a trademark of Meta Platforms, Inc.
