@@ -14,7 +14,7 @@ Open an issue with:
 ## Development setup
 
 ```sh
-sudo pacman -S android-tools jq
+omarchy pkg add android-tools jq
 git clone https://github.com/bwz-kk/orbit-linux.git && cd orbit-linux
 rsync -a --delete --exclude .git --exclude test ./ ~/.config/omarchy/plugins/bwzkk.orbit/
 omarchy plugin enable bwzkk.orbit

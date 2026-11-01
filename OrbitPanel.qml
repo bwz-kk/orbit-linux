@@ -118,7 +118,7 @@ Ui.Panel {
   })[st.state] || st.state
 
   readonly property string hint: st.state === "unauthorized" ? "Accept the USB debugging prompt inside the headset."
-    : st.state === "no-adb" ? "Install adb: sudo pacman -S android-tools"
+    : st.state === "no-adb" ? "Install adb: omarchy pkg add android-tools"
     : st.state === "offline" ? "Headset is asleep or Wi-Fi ADB dropped."
     : st.state === "disconnected" ? "Plug in over USB, or Reconnect for Wi-Fi."
     : ""

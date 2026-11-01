@@ -1,5 +1,7 @@
 # Orbit
 
+![Orbit card](preview.png)
+
 Meta Quest monitor for the Omarchy bar (omarchy-shell). A bar icon shows the headset battery; clicking it opens a small card with:
 
 - headset battery, charging state, temperature, power source, worn/standby state
@@ -11,11 +13,11 @@ Everything is read over ADB from the headset. Colors follow the active Omarchy t
 
 ## Requirements
 
-1. `sudo pacman -S android-tools`
+1. Install `adb`: `omarchy pkg add android-tools`
 2. Developer Mode on the headset (Meta Horizon phone app → Devices → Developer Mode; needs a Meta developer account).
 3. Plug the headset in over USB and accept **Allow USB debugging** (tick "Always allow from this computer").
 
-USB permissions work out of the box on Omarchy (systemd `uaccess` covers ADB interfaces).
+Orbit also uses `jq`, `bluetoothctl` (`bluez-utils`, only to wake a sleeping headset) and `notify-send` (`libnotify`), which ship with Omarchy. USB permissions work out of the box on Omarchy (systemd `uaccess` covers ADB interfaces).
 
 ## Install
 
@@ -23,15 +25,29 @@ USB permissions work out of the box on Omarchy (systemd `uaccess` covers ADB int
 omarchy plugin add https://github.com/bwz-kk/orbit-linux.git --enable
 ```
 
-## Wireless
+## Usage
 
-While the headset is on USB, open the card and press **Set up Wi-Fi** (or run `bin/orbit-status wifi`). The address is saved to `~/.config/orbit-linux/wifi`, and Orbit reconnects to it automatically when the headset is not attached. Wireless ADB stops after the headset reboots; plug it in and press **Set up Wi-Fi** again.
+Click the headset icon in the bar to open the card, middle-click it to refresh. `omarchy-shell bwzkk.orbit open|close|toggle|wake` does the same from a terminal or keybinding.
+
+## Configure
+
+Orbit has no bar settings. The only setup is optional wireless ADB.
+
+While the headset is on USB, open the card and press **Set up Wi-Fi** (or run `bin/orbit-status wifi`). The address is saved to `~/.config/orbit-linux/wifi`, and Orbit reconnects to it when you press refresh or **Reconnect** in the card (background checks never reconnect, see [How it works](#how-it-works)). Wireless ADB stops after the headset reboots; plug it in and press **Set up Wi-Fi** again.
 
 > **Security warning:** Set up Wi-Fi runs `adb tcpip 5555`, which leaves ADB listening on port 5555 of the headset's network until it reboots. Any device on the same network can attempt to connect. A new computer still has to be approved with the "Allow USB debugging" prompt inside the headset, so:
 >
 > - Only use wireless mode on networks you trust (your home network, not public or shared Wi-Fi).
 > - Never accept a debugging prompt in the headset that you did not trigger yourself.
 > - To close the port, reboot the headset, or run `adb usb` while it is connected.
+
+## Remove
+
+```sh
+omarchy plugin remove bwzkk.orbit
+```
+
+Orbit's own files stay behind; delete them with `rm -rf ~/.config/orbit-linux ~/.cache/orbit-linux`. If you set up wireless ADB, run `adb usb` or reboot the headset to close port 5555.
 
 ## How it works
 
